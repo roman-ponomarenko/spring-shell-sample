@@ -1,0 +1,6 @@
+# ignore Intellij IDEA files
+target
+.idea
+*.iml
+# ignore logs files
+*.log
