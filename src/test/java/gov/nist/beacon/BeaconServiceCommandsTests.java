@@ -2,12 +2,12 @@ package gov.nist.beacon;
 
 import gov.nist.beacon.commands.BeaconServiceCommands;
 import gov.nist.beacon.entities.TimeOptions;
+import org.hamcrest.CoreMatchers;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.shell.Bootstrap;
 import org.springframework.shell.core.CommandResult;
 import org.springframework.shell.core.JLineShellComponent;
-import ru.stqa.trier.LimitExceededException;
 
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -103,5 +103,17 @@ public class BeaconServiceCommandsTests extends BaseTests {
         assertThat(cr.isSuccess(), is(true));
         assertThat(cr.getResult(), equalTo("None of options is valid for argument --from" +
                 "\nNone of options is valid for argument --from"));
+    }
+
+    @Test
+    public void shortSumTest() {
+        String beaconSummary = summarizer.getBeaconSummary("B423AF");
+        assertThat(beaconSummary, CoreMatchers.is("2,1\n3,1\n4,1\nA,1\nB,1\nF,1"));
+    }
+
+    @Test
+    public void longSumTest() {
+        String beaconSummary = summarizer.getBeaconSummary("B423AF7352BA");
+        assertThat(beaconSummary, CoreMatchers.is("2,2\n3,2\n4,1\n5,1\n7,1\nA,2\nB,2\nF,1"));
     }
 }

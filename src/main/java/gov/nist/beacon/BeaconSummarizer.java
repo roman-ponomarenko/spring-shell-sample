@@ -3,14 +3,25 @@ package gov.nist.beacon;
 import gov.nist.beacon.clients.RestClient;
 import gov.nist.beacon.entities.BeaconResponse;
 import gov.nist.beacon.entities.TimeOptions;
-import gov.nist.beacon.utils.StringUtils;
-import gov.nist.beacon.utils.TimeUtils;
+import gov.nist.beacon.exception.BeaconServiceUnavailableException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
+import org.springframework.shell.support.util.OsUtils;
 import org.springframework.stereotype.Component;
+import ru.stqa.trier.LimitExceededException;
+import ru.stqa.trier.TimeBasedTrier;
 
-import static gov.nist.beacon.utils.WaitUtils.tryTo;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+
+import static org.springframework.util.StringUtils.countOccurrencesOf;
 
 @Component
 public class BeaconSummarizer {
@@ -33,12 +44,12 @@ public class BeaconSummarizer {
     public String distinguish() {
         ResponseEntity<BeaconResponse> resp = tryTo(duration, interval,
                 () -> client.getForObject(lastBeaconUrl, BeaconResponse.class));
-        return StringUtils.getBeaconSummary(resp.getBody().getOutputValue());
+        return getBeaconSummary(resp.getBody().getOutputValue());
     }
 
     public String distinguish(TimeOptions from, TimeOptions to) {
-        long fromTime = TimeUtils.getEpochTimeInSeconds(from);
-        long toTime = TimeUtils.getEpochTimeInSeconds(to);
+        long fromTime = getEpochTimeInSeconds(from);
+        long toTime = getEpochTimeInSeconds(to);
         StringBuilder sb = new StringBuilder();
 
         ResponseEntity<BeaconResponse> resp;
@@ -51,6 +62,38 @@ public class BeaconSummarizer {
             sb.append(resp.getBody().getOutputValue());
         }
 
-        return StringUtils.getBeaconSummary(sb.toString());
+        return getBeaconSummary(sb.toString());
+    }
+
+    @SuppressWarnings("squid:S1166")
+    private <T> T tryTo(long duration, long interval, Supplier<T> s) {
+        try {
+            return new TimeBasedTrier<>(duration, interval).tryTo(s);
+        } catch (LimitExceededException | InterruptedException e) {
+            throw new BeaconServiceUnavailableException("Unable to get response from Beacon service during 30 seconds.");
+        }
+    }
+
+    long getEpochTimeInSeconds(TimeOptions options) {
+        LocalDateTime timePoint = LocalDateTime.now().with(LocalTime.now().truncatedTo(ChronoUnit.MINUTES));
+        timePoint = timePoint.minusMonths(options.getMonth());
+        timePoint = timePoint.minusDays(options.getDays());
+        timePoint = timePoint.minusHours(options.getHours());
+        timePoint = timePoint.minusMinutes(options.getMinutes());
+        return timePoint.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli() / 1000L;
+    }
+
+    String getBeaconSummary(String outputValue) {
+        Map<String, Integer> sum = new HashMap<>();
+
+        outputValue.chars()
+                .mapToObj(ch -> (char) ch)
+                .distinct()
+                .forEach(ch -> sum.put(ch.toString(), countOccurrencesOf(outputValue, ch.toString())));
+
+        return sum.entrySet().stream()
+                .sorted(Map.Entry.comparingByKey())
+                .map(entry -> entry.getKey() + "," + entry.getValue())
+                .collect(Collectors.joining(OsUtils.LINE_SEPARATOR));
     }
 }

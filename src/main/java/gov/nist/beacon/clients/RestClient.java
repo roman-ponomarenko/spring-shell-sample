@@ -1,6 +1,5 @@
 package gov.nist.beacon.clients;
 
-import gov.nist.beacon.utils.WaitUtils;
 import org.apache.http.HttpEntityEnclosingRequest;
 import org.apache.http.HttpRequest;
 import org.apache.http.NoHttpResponseException;
@@ -30,8 +29,6 @@ public class RestClient {
 
     private RestTemplate template;
 
-    private int retryTimeOut = 2_000;
-
     private int retryCount = 3;
 
     private RestClient() {
@@ -51,7 +48,6 @@ public class RestClient {
             } else if (exception instanceof NoHttpResponseException ||
                     exception instanceof InterruptedIOException ||
                     exception instanceof SocketException) {
-                WaitUtils.delay(retryTimeOut);
                 return true;
             }
             //if request is idempotent

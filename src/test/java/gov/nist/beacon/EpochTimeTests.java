@@ -1,8 +1,8 @@
 package gov.nist.beacon;
 
 import gov.nist.beacon.entities.TimeOptions;
-import gov.nist.beacon.utils.TimeUtils;
 import org.junit.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -12,16 +12,19 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 public class EpochTimeTests extends BaseTests {
+    @Autowired
+    private BeaconSummarizer summarizer;
+
     @Test
     public void currentTimeTest() {
-        long actualTime = TimeUtils.getEpochTimeInSeconds(TimeOptions.of(0, 0, 0, 0));
+        long actualTime = summarizer.getEpochTimeInSeconds(TimeOptions.of(0, 0, 0, 0));
         long currentTime = System.currentTimeMillis() / 1000L;
         assertThat((currentTime / 60) - (actualTime / 60), is(0L));
     }
 
     @Test
     public void minutesTest() {
-        long utilTimeEpoch = TimeUtils.getEpochTimeInSeconds(TimeOptions.of(0, 0, 0, 7));
+        long utilTimeEpoch = summarizer.getEpochTimeInSeconds(TimeOptions.of(0, 0, 0, 7));
         long currentTimeEpoch = System.currentTimeMillis() / 1000L;
         LocalDateTime utilTime = Instant.ofEpochSecond(utilTimeEpoch).atZone(ZoneId.systemDefault()).toLocalDateTime();
         LocalDateTime currentTime = Instant.ofEpochSecond(currentTimeEpoch).atZone(ZoneId.systemDefault()).toLocalDateTime();
@@ -31,7 +34,7 @@ public class EpochTimeTests extends BaseTests {
 
     @Test
     public void hoursTest() {
-        long utilTimeEpoch = TimeUtils.getEpochTimeInSeconds(TimeOptions.of(0, 0, 2, 0));
+        long utilTimeEpoch = summarizer.getEpochTimeInSeconds(TimeOptions.of(0, 0, 2, 0));
         long currentTimeEpoch = System.currentTimeMillis() / 1000L;
         LocalDateTime utilTime = Instant.ofEpochSecond(utilTimeEpoch).atZone(ZoneId.systemDefault()).toLocalDateTime();
         LocalDateTime currentTime = Instant.ofEpochSecond(currentTimeEpoch).atZone(ZoneId.systemDefault()).toLocalDateTime();
@@ -41,7 +44,7 @@ public class EpochTimeTests extends BaseTests {
 
     @Test
     public void daysTest() {
-        long utilTimeEpoch = TimeUtils.getEpochTimeInSeconds(TimeOptions.of(0, 30, 0, 0));
+        long utilTimeEpoch = summarizer.getEpochTimeInSeconds(TimeOptions.of(0, 30, 0, 0));
         long currentTimeEpoch = System.currentTimeMillis() / 1000L;
         LocalDateTime utilTime = Instant.ofEpochSecond(utilTimeEpoch).atZone(ZoneId.systemDefault()).toLocalDateTime();
         LocalDateTime currentTime = Instant.ofEpochSecond(currentTimeEpoch).atZone(ZoneId.systemDefault()).toLocalDateTime();
@@ -51,7 +54,7 @@ public class EpochTimeTests extends BaseTests {
 
     @Test
     public void monthTest() {
-        long utilTimeEpoch = TimeUtils.getEpochTimeInSeconds(TimeOptions.of(2, 0, 0, 0));
+        long utilTimeEpoch = summarizer.getEpochTimeInSeconds(TimeOptions.of(2, 0, 0, 0));
         long currentTimeEpoch = System.currentTimeMillis() / 1000L;
         LocalDateTime utilTime = Instant.ofEpochSecond(utilTimeEpoch).atZone(ZoneId.systemDefault()).toLocalDateTime();
         LocalDateTime currentTime = Instant.ofEpochSecond(currentTimeEpoch).atZone(ZoneId.systemDefault()).toLocalDateTime();
