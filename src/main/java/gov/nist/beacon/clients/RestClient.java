@@ -1,25 +1,11 @@
 package gov.nist.beacon.clients;
 
-import org.apache.http.HttpEntityEnclosingRequest;
-import org.apache.http.HttpRequest;
-import org.apache.http.NoHttpResponseException;
-import org.apache.http.client.HttpRequestRetryHandler;
-import org.apache.http.client.config.CookieSpecs;
-import org.apache.http.client.config.RequestConfig;
-import org.apache.http.client.protocol.HttpClientContext;
-import org.apache.http.conn.ssl.NoopHostnameVerifier;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
-import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
+import org.springframework.http.client.OkHttp3ClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.DefaultResponseErrorHandler;
 import org.springframework.web.client.RestTemplate;
-
-import javax.net.ssl.SSLException;
-import java.io.InterruptedIOException;
-import java.net.SocketException;
 
 @Component
 public class RestClient {
@@ -29,38 +15,12 @@ public class RestClient {
 
     private RestTemplate template;
 
-    private int retryCount = 3;
-
     private RestClient() {
-        RequestConfig requestConfig = RequestConfig.custom()
-                .setCookieSpec(CookieSpecs.DEFAULT)
-                .setExpectContinueEnabled(true)
-                .setSocketTimeout(timeout)
-                .setConnectTimeout(timeout)
-                .setConnectionRequestTimeout(timeout)
-                .build();
-
-        HttpRequestRetryHandler retryHandler = (exception, executionCount, context) -> {
-            HttpClientContext clientContext = HttpClientContext.adapt(context);
-            HttpRequest request = clientContext.getRequest();
-            if (executionCount >= retryCount || exception instanceof SSLException) {
-                return false; // Do not retry if over max retry count
-            } else if (exception instanceof NoHttpResponseException ||
-                    exception instanceof InterruptedIOException ||
-                    exception instanceof SocketException) {
-                return true;
-            }
-            //if request is idempotent
-            return !(request instanceof HttpEntityEnclosingRequest);
-        };
-
-        CloseableHttpClient httpClient = HttpClients.custom()
-                .setSSLHostnameVerifier(new NoopHostnameVerifier())
-                .setDefaultRequestConfig(requestConfig)
-                .setRetryHandler(retryHandler)
-                .build();
-
-        template = new RestTemplate(new HttpComponentsClientHttpRequestFactory(httpClient));
+        OkHttp3ClientHttpRequestFactory factory = new OkHttp3ClientHttpRequestFactory();
+        factory.setConnectTimeout(timeout);
+        factory.setReadTimeout(timeout);
+        factory.setWriteTimeout(timeout);
+        template = new RestTemplate(factory);
 
         template.setErrorHandler(new DefaultResponseErrorHandler() {
             @Override
